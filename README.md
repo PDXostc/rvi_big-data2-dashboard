@@ -1,4 +1,4 @@
-##### RVI Big Data 2 Dashboard
+### RVI Big Data 2 Dashboard
 
 Dashboard web frontend for RVI Big Data based on Hortonworks HDP.
 
