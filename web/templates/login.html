@@ -1,0 +1,75 @@
+<!DOCTYPE HTML>
+<html lang="en">
+
+<head>
+	<title>RVI Remote Dashboard Login</title>
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
+	<script type="text/javascript" src="{{ url_for('static', filename='js/jquery-1.11.3.min.js') }}"></script>
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+	<script type="text/javascript" src="{{ url_for('static', filename='js/login.js') }}"></script>
+	<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/login_style.css') }}">
+	<link rel="shortcut icon" href="{{ url_for('static', filename='images/jlr.ico') }}" />
+</head>
+
+<body>
+	<div class="container">
+		<div class="row">
+			<div class="col-md-6 col-md-offset-3">
+
+				<div class="panel panel-login">
+					<div class="panel-heading">
+						<div class="row">
+							<div class="col-xs-12">
+								<p></p>
+								<img src="{{ url_for('static', filename='images/OSTC-Corporate-Logo-White.jpg') }}" width="75%" height="75%">
+								<br>
+								<p></p>
+								<a href="#" class="active" id="login-form-link">RVI Remote Dashboard Login</a>
+							</div>
+						</div>
+						<hr>
+					</div>
+					<div class="panel-body">
+						<div class="row">
+							<div class="col-lg-12">
+								<form id="login-form" action="#" method="post" role="form" style="display: block;">
+									<div class="form-group">
+										<div class="row">
+											<div class="col-sm-6 col-sm-offset-3">
+
+												{% with messages = get_flashed_messages() %}
+													{% if messages %}
+													<ul>
+														{% for message in messages %}
+														<br>{{ message }}
+														{% endfor %}
+													</ul>
+													{% endif %}
+
+												{% endwith %}
+
+												<a href="/authhandler/loginGoogle" class="btn btn-info btn-block">Login via Google</a>
+
+											</div>
+											<div class="col-sm-6">
+											</div>
+										</div>
+									</div>
+								</form>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<!-- Allocating Column Grid -->
+			<div="col-md-6">
+			</div>
+			<!-- End Allocating Column Grid -->
+		</div>
+	</div>
+
+
+</body>
+
+</html>

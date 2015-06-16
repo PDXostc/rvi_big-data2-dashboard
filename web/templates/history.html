@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+{% block header %}
+	<title>History</title>
+	<script src='{{ url_for('static', filename='js/mapbox-2.1.9.js') }}'></script>
+	<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/mapbox-2.1.9.css') }}">
+	<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/history.css') }}">
+	<!-- Datepicker CSS -->
+	<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/bootstrap-datepicker.css') }}">
+	<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/jquery.timepicker.css') }}">
+	<!-- /Datepicker -->
+{% endblock %}
+
+{% block content %}
+	<div class="container-fluid darklue" id="page-top">
+		<p>
+			{% with messages = get_flashed_messages() %}
+				{% if messages %}
+					<ul class="flashes">
+						{% for message in messages %}
+							<li>{{ message }}</li>
+						{% endfor %}
+					</ul>
+				{% endif %}
+			{% endwith %}
+		</p>
+		<div class="row">
+			<div class="col-xs-9">
+				<div id="map"></div>
+			</div>
+			<div class="col-xs-3">
+				<form method="POST">
+					Car name:<br>
+					<select name="car">
+						{% if cars_list %}
+						<option value="">Please select a car</option>
+						{% for car in cars_list %}
+						<option value="{{ car.car_vin }}">{{ car.car_name }}</option>
+						{% endfor %}
+						{% else %}
+						<option value="">You have no cars!</option>
+						{% endif %}
+					</select>
+					<br>
+					<p id="datepair">
+						<input type="text" class="date start" name="start_date" required>
+						<input type="text" class="time start" name="start_time" required> to
+						<input type="text" class="date end" name="end_date" required>
+						<input type="text" class="time end" name="end_time" required>
+						<br>
+						* All times in GMT
+					</p>
+					<br>
+					<input type="submit" value="Submit">
+				</form>
+				<p id="dump">
+					{% if data %}
+					{% endif %}
+				</p>
+			</div>
+		</div>
+		<div class="row">
+			<div class="col-xs-12" id="table-history-container">
+				<table id="table-history" class="table table-hover">
+					<tr>
+						<th>Time</th>
+						<th>Latitude</th>
+						<th>Longitude</th>
+						<th>Altitude</th>
+						<th>Track</th>
+						<th>Speed</th>
+					</tr>
+				</table>
+			</div>
+		</div>
+	</div>
+{% endblock %}
+
+{% block content_js %}
+	<!-- Datepicker -->
+	<script type="text/javascript" src="{{ url_for('static', filename='js/bootstrap-datepicker.js') }}"></script>
+	<script type="text/javascript" src="{{ url_for('static', filename='js/jquery.timepicker.min.js') }}"></script>
+	<script type="text/javascript" src="{{ url_for('static', filename='js/Datepair.js') }}"></script>
+	<script type="text/javascript" src="{{ url_for('static', filename='js/jquery.datepair.js') }}"></script>
+	<script>
+		// initialize input widgets first
+		$('#datepair .time').timepicker({
+			'showDuration': true,
+			'timeFormat': 'h:iA'
+		});
+
+		$('#datepair .date').datepicker({
+			'format': 'yyyy-mm-dd',
+			'autoclose': true,
+			'endDate': new Date()
+		});
+
+		// initialize datepair
+		$('#datepair').datepair();
+	</script>
+	<!-- /Datepicker -->
+	<!-- Map -->
+	<script type="text/javascript" charset="utf-8">
+		L.mapbox.accessToken = 'pk.eyJ1IjoiYWJlbGpvaG4iLCJhIjoiam9fcDRLayJ9.pKiEuAZfLcg4NI8GBwrJfg';
+
+		var map = L.mapbox.map('map', 'mapbox.streets');
+
+		map.on('load', function(e) {
+			window.dispatchEvent(new Event('resize'));
+		});
+
+		map.setView([37, -122], 14);
+		
+		{% if data %}
+		// If has data, start updating map
+		var marker = L.marker([37, -122], {
+			icon: L.mapbox.marker.icon({
+				'marker-color': '#f86767'
+			})
+		});
+
+		marker.addTo(map);
+
+		var polyline = L.polyline([]).addTo(map);
+		
+		var entire_payload = '{{data|tojson}}';
+		
+		list_of_data = JSON.parse(decodeURI(entire_payload));
+
+		var i = 0;
+		var updatePage = window.setInterval(updatePageData, 1000);
+
+		function updatePageData() {
+			if (i < list_of_data.length) {  
+                                console.log(list_of_data[i]['data']);
+                                temp = list_of_data[i]['data'];
+
+                                for (var j=0; j < temp.length; j++) {
+                                        channel_block = temp[j];
+                                        if (channel_block['channel'] == 'location') {
+                                                marker.setLatLng(L.latLng(parseFloat(channel_block['value']['lat']), parseFloat(channel_block['value']['lon'])));
+						polyline.addLatLng(L.latLng(parseFloat(channel_block['value']['lat']), parseFloat(channel_block['value']['lon'])));
+                                                map.setView([parseFloat(channel_block['value']['lat']), parseFloat(channel_block['value']['lon'])]);
+                                        } else if (channel_block['channel'] == 'track') {
+                                                console.log('track is ' + channel_block['value']);
+                                        } else if (channel_block['channel'] == 'speed') {
+                                                console.log('speed is ' + channel_block['value']);
+                                        }
+                                }
+                                
+                                // Highlight the respective row on the table
+                                var table_row = $("#table-history")[0].rows[i+1];
+				$(table_row).addClass('active');
+                                i = i + 1;
+                        } else {
+				clearInterval(updatePage);
+			}
+		}
+
+		// Populate table
+		var hist_table = document.getElementById("table-history");
+		
+		for (var k = 0; k < list_of_data.length; k++) {
+			temp = list_of_data[k]['data'];
+			timestamp = list_of_data[k]['timestamp'];
+
+			var row = hist_table.insertRow(-1);
+			var cell_time = row.insertCell(0);
+			var cell_lat = row.insertCell(1);
+			var cell_lon = row.insertCell(2);
+			var cell_alt = row.insertCell(3);
+			var cell_track = row.insertCell(4);
+			var cell_speed = row.insertCell(5);
+
+			var d = new Date(0);
+			d.setUTCSeconds(parseInt(timestamp));
+			cell_time.innerHTML = d.toString();
+
+			for (var j = 0; j < temp.length; j++) {
+				channel_block = temp[j];
+				if (channel_block['channel'] == 'location') {
+					cell_lat.innerHTML = channel_block['value']['lat'];
+					cell_lon.innerHTML = channel_block['value']['lon'];					
+					cell_alt.innerHTML = channel_block['value']['alt'];
+
+				} else if (channel_block['channel'] == 'track') {
+					cell_track.innerHTML = channel_block['value'];
+
+				} else if (channel_block['channel'] == 'speed') {
+					cell_speed.innerHTML = channel_block['value'];
+					
+				}
+			}
+		}
+
+		{% endif %}
+	</script>
+	<!-- /Map -->
+{% endblock %}
